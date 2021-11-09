@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-type AttrMap = HashMap<String, String>;
+pub type AttrMap = HashMap<String, String>;
 
 pub struct Node {
     /// children of a dom node
@@ -29,7 +29,7 @@ struct ElementData {
 
 impl Node {
     /// create text node
-    fn text(data: String) -> Node {
+    pub fn text(data: String) -> Node {
         // text node has no children
         Node {
             children: Vec::new(),
@@ -38,7 +38,7 @@ impl Node {
     }
 
     /// create element node
-    fn element(name: String, attrs: AttrMap, children: Vec<Node>) -> Node {
+    pub fn element(name: String, attrs: AttrMap, children: Vec<Node>) -> Node {
         Node {
             children,
             node_type: NodeType::Element(ElementData {

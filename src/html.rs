@@ -1,3 +1,5 @@
+use crate::dom;
+
 struct Parser {
     /// the index of the next character we haven't processed yet
     pos: usize,
@@ -37,10 +39,67 @@ impl Parser {
     where
         F: Fn(char) -> bool,
     {
-      let mut result = String::new();
-      while !self.eof() && filter(self.next_char()) {
-        result.push(self.consume_char());
-      }
-      return result;
+        let mut result = String::new();
+        while !self.eof() && filter(self.next_char()) {
+            result.push(self.consume_char());
+        }
+        return result;
+    }
+
+    /// consume and discard whitespace characters
+    fn consume_whitespace(&mut self) {
+        // wow, so interesting! Please notice the `;`, so the result of consume_until won't be returned
+        self.consume_until(char::is_whitespace);
+    }
+
+    /// parse a tag or attribute name
+    fn parse_tag_name(&mut self) -> String {
+        self.consume_until(|c| match c {
+            'a'..='z' | 'A'..='Z' | '0'..='9' => true,
+            _ => false,
+        })
+    }
+
+    /// parse a single node
+    fn parse_node(&mut self) -> dom::Node {
+        match self.next_char() {
+            '<' => self.parse_element(),
+            _ => self.parse_text(),
+        }
+    }
+
+    /// parse a text node
+    fn parse_text(&mut self) -> dom::Node {
+        dom::Node::text(self.consume_until(|c| c != '<'))
+    }
+
+    /// parse a single element, including its opening tag, contents, and closing tag
+    fn parse_element(&mut self) -> dom::Node {
+      // opening tag
+      assert!(self.consume_char() == '<');
+      let tag_name = self.parse_tag_name();
+      let attrs = self.parse_attributes();
+      assert!(self.consume_char() == '>');
+
+      // contents
+      let children = self.parse_nodes();
+
+      // closing tag
+      assert!(self.consume_char() == '<');
+      assert!(self.consume_char() == '/');
+      assert!(self.parse_tag_name() == tag_name);
+      assert!(self.consume_char() == '>');
+
+      return dom::Node::element(tag_name, attrs, children);
+    }
+
+    fn parse_attributes(&mut self) -> dom::AttrMap {
+      // TODO
+      dom::AttrMap::new()
+    }
+
+    fn parse_nodes(&mut self) -> Vec<dom::Node> {
+      // TODO
+      Vec::new()
     }
 }
