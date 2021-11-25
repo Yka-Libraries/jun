@@ -2,7 +2,7 @@ struct StyleSheet {
     rules: Vec<Rule>,
 }
 
-/// rule of css, like `div.note { margin-bottom: 20px; padding: 10px; }`
+/// css rule, a rule is a style block, like `div.note { margin-bottom: 20px; padding: 10px; }`
 struct Rule {
     /// selector lists
     selectors: Vec<Selector>,
@@ -15,9 +15,9 @@ struct Rule {
 /// overrides the other in a conflict. If a stylesheet contains two rules
 /// that match an element, the rule with the matching selector of higher
 /// specificity can override values from the one with lower specificity.
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 ///  *             {}  /* a=0 b=0 c=0 d=0 -> specificity = 0,0,0,0 */
 ///  li            {}  /* a=0 b=0 c=0 d=1 -> specificity = 0,0,0,1 */
@@ -38,10 +38,10 @@ struct Rule {
 /// <P ID=x97z style="color: green">
 /// </BODY>
 /// ```
-/// 
+///
 /// above example is from `https://www.w3.org/TR/CSS2/cascade.html#specificity`,
 /// but here for simple purpose, **We use three number to decide the specificity.**
-/// 
+///
 pub type Specificity = (usize, usize, usize);
 
 /// selector of css, like a tag name、a class name prefixed by '.'、'*'
@@ -50,12 +50,13 @@ enum Selector {
 }
 
 impl Selector {
-    pub fn specificity(&self) -> Specificity {
-      let Selector::Simple(ref simple) = *self;
-      let a = simple.id.iter().count();
-      let b = simple.class.len();
-      let c = simple.tag_name.iter().count();
-      (a, b, c)
+    /// get the specificity of a selector
+    fn specificity(&self) -> Specificity {
+        let Selector::Simple(ref simple) = *self;
+        let a = simple.id.iter().count();
+        let b = simple.class.len();
+        let c = simple.tag_name.iter().count();
+        (a, b, c)
     }
 }
 
@@ -95,7 +96,7 @@ struct Color {
 }
 
 fn valid_identifier_char(identifier: char) -> bool {
-  todo!()
+    todo!()
 }
 
 struct Parser {}
@@ -110,41 +111,79 @@ impl Parser {
         };
 
         while !self.eof() {
-          match self.next_char() {
-              '#' => {
-                self.consume_char();
-                selector.id = Some(self.parse_identifier());
-              },
-              '.' => {
-                self.consume_char();
-                selector.class.push(self.parse_identifier());
-              },
-              '*' => {
-                self.consume_char();
-              },
-              c if valid_identifier_char(c) => {
-                selector.tag_name = Some(self.parse_identifier());
-              },
-              _ => break
-          }
+            match self.next_char() {
+                '#' => {
+                    self.consume_char();
+                    selector.id = Some(self.parse_identifier());
+                }
+                '.' => {
+                    self.consume_char();
+                    selector.class.push(self.parse_identifier());
+                }
+                '*' => {
+                    self.consume_char();
+                }
+                // if `c` is true for method `valid_identifier_char`, use this arm
+                c if valid_identifier_char(c) => {
+                    selector.tag_name = Some(self.parse_identifier());
+                }
+                _ => break,
+            }
         }
 
-        return selector
+        return selector;
+    }
+
+    /// parse a rule set: `<selector> { <declarations> }`
+    fn parse_rule(&mut self) -> Rule {
+        Rule {
+            selectors: self.parse_selectors(),
+            declarations: self.parse_declarations(),
+        }
+    }
+
+    /// parse a comma-separated list of selectors
+    fn parse_selectors(&mut self) -> Vec<Selector> {
+        let mut selectors = Vec::new();
+        loop {
+            selectors.push(Selector::Simple(self.parse_simple_selector()));
+            self.consume_whitespace();
+            match self.next_char() {
+                ',' => {
+                    self.consume_char();
+                    self.consume_whitespace();
+                }
+                // start of declarations
+                '{' => break,
+                c => panic!("Unexpected character {} in selector list", c),
+            }
+        }
+        // return selectors with highest specificity first, for use in matching
+        selectors.sort_by(|a, b| b.specificity().cmp(&a.specificity()));
+        return selectors;
+    }
+
+    fn parse_declarations(&mut self) -> Vec<Declaration> {
+        todo!()
+    }
+
+    fn consume_whitespace(&mut self) {
+        todo!()
     }
 
     fn eof(&mut self) -> bool {
-      todo!()
+        todo!()
     }
 
     fn next_char(&mut self) -> char {
-      todo!()
+        todo!()
     }
 
     fn consume_char(&mut self) -> char {
-      todo!()
+        todo!()
     }
 
     fn parse_identifier(&mut self) -> String {
-      todo!()
+        todo!()
     }
 }
