@@ -99,9 +99,67 @@ fn valid_identifier_char(identifier: char) -> bool {
     todo!()
 }
 
-struct Parser {}
+struct Parser {
+    /// the index of the next character we haven't processed yet
+    pos: usize,
+
+    /// input string
+    input: String,
+}
 
 impl Parser {
+    // --------------------------
+    // --- dom parse function ---
+    // --------------------------
+
+    fn parse_rules(&mut self) -> Vec<Rule> {
+        todo!()
+    }
+
+    /// parse a rule set: `<selector> { <declarations> }`
+    fn parse_rule(&mut self) -> Rule {
+        Rule {
+            selectors: self.parse_selectors(),
+            declarations: self.parse_declarations(),
+        }
+    }
+
+    /// parse a comma-separated list of selectors
+    fn parse_selectors(&mut self) -> Vec<Selector> {
+        let mut selectors = Vec::new();
+        loop {
+            selectors.push(Selector::Simple(self.parse_simple_selector()));
+            self.consume_whitespace();
+            match self.next_char() {
+                ',' => {
+                    self.consume_char();
+                    self.consume_whitespace();
+                }
+                // start of declarations
+                '{' => break,
+                c => panic!("Unexpected character {} in selector list", c),
+            }
+        }
+        // return selectors with highest specificity first, for use in matching
+        selectors.sort_by(|a, b| b.specificity().cmp(&a.specificity()));
+        return selectors;
+    }
+
+    /// parse a list of declarations enclosed in `{ ... }`
+    fn parse_declarations(&mut self) -> Vec<Declaration> {
+        assert_eq!(self.consume_char(), '{');
+        let mut declarations = Vec::new();
+        loop {
+            self.consume_whitespace();
+            if self.next_char() == '}' {
+                self.consume_char();
+                break;
+            }
+            declarations.push(self.parse_declaration());
+        }
+        return declarations;
+    }
+
     /// parse one simple selector, e.g.: `type#id.class1.class2.class3`
     fn parse_simple_selector(&mut self) -> SimpleSelector {
         let mut selector = SimpleSelector {
@@ -134,56 +192,68 @@ impl Parser {
         return selector;
     }
 
-    /// parse a rule set: `<selector> { <declarations> }`
-    fn parse_rule(&mut self) -> Rule {
-        Rule {
-            selectors: self.parse_selectors(),
-            declarations: self.parse_declarations(),
+    /// parse one `<property>: <value>` declaration
+    fn parse_declaration(&mut self) -> Declaration {
+        let property_name = self.parse_identifier();
+        self.consume_whitespace();
+        assert_eq!(self.consume_char(), ':');
+        self.consume_whitespace();
+        let value = self.parse_value();
+        self.consume_whitespace();
+        assert_eq!(self.consume_char(), ';');
+
+        Declaration {
+            name: property_name,
+            value: value,
         }
-    }
-
-    /// parse a comma-separated list of selectors
-    fn parse_selectors(&mut self) -> Vec<Selector> {
-        let mut selectors = Vec::new();
-        loop {
-            selectors.push(Selector::Simple(self.parse_simple_selector()));
-            self.consume_whitespace();
-            match self.next_char() {
-                ',' => {
-                    self.consume_char();
-                    self.consume_whitespace();
-                }
-                // start of declarations
-                '{' => break,
-                c => panic!("Unexpected character {} in selector list", c),
-            }
-        }
-        // return selectors with highest specificity first, for use in matching
-        selectors.sort_by(|a, b| b.specificity().cmp(&a.specificity()));
-        return selectors;
-    }
-
-    fn parse_declarations(&mut self) -> Vec<Declaration> {
-        todo!()
-    }
-
-    fn consume_whitespace(&mut self) {
-        todo!()
-    }
-
-    fn eof(&mut self) -> bool {
-        todo!()
-    }
-
-    fn next_char(&mut self) -> char {
-        todo!()
-    }
-
-    fn consume_char(&mut self) -> char {
-        todo!()
     }
 
     fn parse_identifier(&mut self) -> String {
         todo!()
+    }
+
+    fn parse_value(&mut self) -> Value {
+        todo!()
+    }
+
+    // ----------------------
+    // --- utils function ---
+    // ----------------------
+
+    /// return next character
+    fn next_char(&self) -> char {
+        self.input[self.pos..].chars().next().unwrap()
+    }
+
+    /// return `true` if all input is consumed
+    fn eof(&self) -> bool {
+        self.pos >= self.input.len()
+    }
+
+    /// return the current character and advance self.pos to the next character
+    fn consume_char(&mut self) -> char {
+        let mut iter = self.input[self.pos..].char_indices();
+        let (_, cur_char) = iter.next().unwrap();
+        // if all input is consumed, add `1` to indicate ending of input
+        let (next_pos, _) = iter.next().unwrap_or((1, ' '));
+        self.pos += next_pos;
+        return cur_char;
+    }
+
+    /// consume characters until `filter` function return false
+    fn consume_until<F>(&mut self, filter: F) -> String
+    where
+        F: Fn(char) -> bool,
+    {
+        let mut result = String::new();
+        while !self.eof() && filter(self.next_char()) {
+            result.push(self.consume_char());
+        }
+        return result;
+    }
+
+    /// consume and discard whitespace characters
+    fn consume_whitespace(&mut self) {
+        self.consume_until(char::is_whitespace);
     }
 }
